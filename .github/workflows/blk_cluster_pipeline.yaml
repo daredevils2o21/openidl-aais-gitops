@@ -68,11 +68,11 @@ jobs:
       - name: Configure AWS CLI
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ secrets.gitactions_user_access_key  }}
-          aws-secret-access-key: ${{ secrets.gitactions_user_secret_key }}
-          aws-region: ${{ secrets.aws_region }}
-          role-to-assume: ${{ secrets.gitactions_eksadm_role }}
-          role-external-id: ${{ secrets.gitactions_external_id }}
+          aws-access-key-id: ${{ env.gitactions_user_access_key  }}
+          aws-secret-access-key: ${{ env.gitactions_user_secret_key }}
+          aws-region: ${{ env.aws_region }}
+          role-to-assume: ${{ env.gitactions_eksadm_role }}
+          role-external-id: ${{ env.gitactions_external_id }}
           role-duration-seconds: 3600 # session valid for 60 minutes
           role-session-name: github-actions
           role-skip-session-tagging: true
