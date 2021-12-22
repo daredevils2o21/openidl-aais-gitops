@@ -50,16 +50,16 @@ jobs:
         working-directory: ansible-automation
         
     env:
-      cluster_name: ${{ env.blk_cluster_name }}
-      region: ${{ env.aws_region }}
-      aws-region: ${{ env.aws_region }}
-      access_id: ${{ env.baf_user_access_key }}
-      access_key: ${{ env.baf_user_secret_key }}
-      account: ${{ env.aws_account_number }}
-      repo_user: ${{ env.git_repo_user }}
-      repo_user_token: ${{ env.git_repo_user_token }}
-      repo_user_email: ${{ env.git_repo_user_email }}
-      registry: ghcr.io/${{ env.baf_image_repo }}
+      cluster_name: ${{ secrets.blk_cluster_name }}
+      region: ${{ secrets.aws_region }}
+      aws-region: ${{ secrets.aws_region }}
+      access_id: ${{ secrets.baf_user_access_key }}
+      access_key: ${{ secrets.baf_user_secret_key }}
+      account: ${{ secrets.aws_account_number }}
+      repo_user: ${{ secrets.git_repo_user }}
+      repo_user_token: ${{ secrets.git_repo_user_token }}
+      repo_user_email: ${{ secrets.git_repo_user_email }}
+      registry: ghcr.io/${{ secrets.baf_image_repo }}
 
     steps:
       - name: Checkout code
@@ -68,11 +68,11 @@ jobs:
       - name: Configure AWS CLI
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ env.gitactions_user_access_key  }}
-          aws-secret-access-key: ${{ env.gitactions_user_secret_key }}
-          aws-region: ${{ env.aws_region }}
-          role-to-assume: ${{ env.gitactions_eksadm_role }}
-          role-external-id: ${{ env.gitactions_external_id }}
+          aws-access-key-id: ${{ secrets.gitactions_user_access_key  }}
+          aws-secret-access-key: ${{ secrets.gitactions_user_secret_key }}
+          aws-region: ${{ secrets.aws_region }}
+          role-to-assume: ${{ secrets.gitactions_eksadm_role }}
+          role-external-id: ${{ secrets.gitactions_external_id }}
           role-duration-seconds: 3600 # session valid for 60 minutes
           role-session-name: github-actions
           role-skip-session-tagging: true
