@@ -52,6 +52,7 @@ jobs:
     env:
       cluster_name: ${{ secrets.blk_cluster_name }}
       region: ${{ secrets.aws_region }}
+      aws-region: ${{ secrets.aws_region }}
       access_id: ${{ secrets.baf_user_access_key }}
       access_key: ${{ secrets.baf_user_secret_key }}
       account: ${{ secrets.aws_account_number }}
