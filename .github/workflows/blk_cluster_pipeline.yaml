@@ -50,16 +50,16 @@ jobs:
         working-directory: ansible-automation
         
     env:
-      cluster_name: ${{ secrets.blk_cluster_name }}
-      region: ${{ secrets.aws_region }}
-      aws-region: ${{ secrets.aws_region }}
-      access_id: ${{ secrets.baf_user_access_key }}
-      access_key: ${{ secrets.baf_user_secret_key }}
-      account: ${{ secrets.aws_account_number }}
-      repo_user: ${{ secrets.git_repo_user }}
-      repo_user_token: ${{ secrets.git_repo_user_token }}
-      repo_user_email: ${{ secrets.git_repo_user_email }}
-      registry: ghcr.io/${{ secrets.baf_image_repo }}
+      cluster_name: ${{ env.blk_cluster_name }}
+      region: ${{ env.aws_region }}
+      aws-region: ${{ env.aws_region }}
+      access_id: ${{ env.baf_user_access_key }}
+      access_key: ${{ env.baf_user_secret_key }}
+      account: ${{ env.aws_account_number }}
+      repo_user: ${{ env.git_repo_user }}
+      repo_user_token: ${{ env.git_repo_user_token }}
+      repo_user_email: ${{ env.git_repo_user_email }}
+      registry: ghcr.io/${{ env.baf_image_repo }}
 
     steps:
       - name: Checkout code
