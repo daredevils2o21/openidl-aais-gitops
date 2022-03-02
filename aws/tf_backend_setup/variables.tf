@@ -8,13 +8,17 @@ variable "aws_region" {
     error_message = "The aws region must be entered in acceptable format, ex: us-east-2."
   }
 }
-variable "aws_access_key" {
+variable "classification" {
   type        = string
-  description = "The aws access key for the account login"
+  description = "Data classification. Needed for Travelers"
 }
-variable "aws_secret_key" {
+variable "owner1" {
+  type = string
+  description = "Bucket owner. Needed for Travelers"
+}
+variable "owner2" {
   type        = string
-  description = "The aws secret key for the account login"
+  description = "Bucket owner. Needed for Travelers"
 }
 variable "aws_role_arn" {
   type = string
@@ -22,7 +26,7 @@ variable "aws_role_arn" {
 }
 variable "aws_external_id" {
   type = string
-  default = "terraform"
+  #default = "terraform"
   description = "The external id used as extra condition as a best practice"
 }
 variable "tags" {
@@ -33,10 +37,7 @@ variable "aws_account_id" {
   type = string
   description = "The account number of the aws account used"
 }
-variable "aws_user_arn" {
-  type = string
-  description = "The arn of the aws iam user"
-}
+
 #terraform backend specific variables
 variable "tf_backend_s3_bucket" {
   type = string

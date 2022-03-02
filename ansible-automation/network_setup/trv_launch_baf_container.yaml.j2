@@ -1,0 +1,99 @@
+apiVersion: v1
+kind: Pod
+metadata:
+    name: openidl-baf
+    namespace: openidl-baf
+spec:
+    containers:
+    - name: baf
+      image: "{{ registry }}/openidl-baf"
+      env:
+      - name: AWS_ACCESS_KEY_ID
+        valueFrom:
+          secretKeyRef:
+            name: openidl-baf-aws
+            key: ID
+      - name: AWS_SECRET_ACCESS_KEY
+        valueFrom:
+          secretKeyRef:
+            name: openidl-baf-aws
+            key: KEY
+      - name: AWS_REGION
+        value: "{{ region }}"
+      - name: ACTION
+        value: "{{ action }}"
+      - name: ORG_NAME
+        value: "{{ network.org_name }}"
+      - name: ORDERERORG
+        value: "{{ network.ordererorg }}"
+      - name: DOMAIN
+        value: "{{ domain }}"
+      - name: ENV
+        value: "{{ env }}"
+      - name: CHANNEL_NAME
+        value: "{{ channel_name | default('defaultchannel') }}"
+      - name: EXTRA_VARS
+        value: "{{ extra_vars | default() }}"
+      command: ["sh", "-c"]
+      args: 
+      - |-
+        #!/bin/bash -e
+        set -x
+        aws eks --region {{ region }} update-kubeconfig --name {{ cluster_name }}
+        cd /home/{{ gitop_repo_name }}/
+        ansible-playbook blockchain-automation-framework/platforms/shared/configuration/environment-setup.yaml -e "@/home/config/network-setup.yml" -e "no_ansible_log=true"
+        if [ ${ACTION} != "deploy_network" ] || [ ${ACTION} != "reset" ] || [ ${ACTION} != "new_org" ]; then
+            POD_NAME=$(kubectl -n ${ORG_NAME}-net get pods --selector=name=ca-tools --output=jsonpath={.items..metadata.name})
+            mkdir -p /home/{{ gitop_repo_name }}/blockchain-automation-framework/platforms/hyperledger-fabric/configuration/build/channel-artifacts
+            kubectl -n ${ORG_NAME}-net cp $POD_NAME:/crypto-config /home/{{ gitop_repo_name }}/blockchain-automation-framework/platforms/hyperledger-fabric/configuration/build/crypto-config
+            cp /home/{{ gitop_repo_name }}/blockchain-automation-framework/platforms/hyperledger-fabric/configuration/build/crypto-config/peerOrganizations/${ORG_NAME}-net/peers/peer0.${ORG_NAME}-net/msp/cacerts/ca-${ORG_NAME}-net-${ORG_NAME}.${ENV}.${DOMAIN}-8443.pem /home/blockchain-automation-framework/build/${ORG_NAME}-ca.crt
+            if [ -z $ORDERERORG ]; then
+                POD_NAME=$(kubectl -n ordererorg-net get pods --selector=name=ca-tools --output=jsonpath={.items..metadata.name})
+                kubectl -n ordererorg-net cp $POD_NAME:/crypto-config /home/blockchain-automation-framework/platforms/hyperledger-fabric/configuration/build/crypto-config
+                cp /home/{{ gitop_repo_name }}/blockchain-automation-framework/platforms/hyperledger-fabric/configuration/build/crypto-config/ordererOrganizations/ordererorg-net/orderers/orderer1.ordererorg-net/tls/ca.crt /home/blockchain-automation-framework/build/orderer1.crt
+            fi              
+        fi
+        if [ $ACTION = "deploy_network" ]; then
+            ansible-playbook blockchain-automation-framework/platforms/shared/configuration/kubernetes-env-setup.yaml -e "@/home/config/network-setup.yml" -e "no_ansible_log=true"
+            ansible-playbook blockchain-automation-framework/platforms/hyperledger-fabric/configuration/deploy-network.yaml -e "@/home/config/network-setup.yml" -e "add_new_org=false" -e "no_ansible_log=true" $EXTRA_VARS
+        elif [ $ACTION = "chaincode" ]; then
+            ansible-playbook blockchain-automation-framework/platforms/hyperledger-fabric/configuration/chaincode-ops.yaml -e "@/home/config/network-setup.yml" -e "no_ansible_log=true" -e "add_peer=true" $EXTRA_VARS
+        elif [ $ACTION = "reset" ]; then
+            ansible-playbook blockchain-automation-framework/platforms/hyperledger-fabric/configuration/reset-network.yaml -e "@/home/config/network-setup.yml" -e "no_ansible_log=true" $EXTRA_VARS
+        elif [ $ACTION = "new_org_prereq" ]; then
+            ansible-playbook blockchain-automation-framework/platforms/shared/configuration/kubernetes-env-setup.yaml -e "@/home/config/network-setup.yml" -e "no_ansible_log=true" $EXTRA_VARS
+        elif [ $ACTION = "new_org" ]; then
+            cat /home/credentials/org.creds > /home/blockchain-automation-framework/build/orderer1.crt
+            cat /home/credentials/org.creds > /home/blockchain-automation-framework/build/orderer2.crt
+            cat /home/credentials/org.creds > /home/blockchain-automation-framework/build/orderer3.crt
+            cat /home/credentials/org.creds > /home/blockchain-automation-framework/build/orderer4.crt
+            cat /home/credentials/org.creds > /home/blockchain-automation-framework/build/orderer5.crt
+            ansible-playbook blockchain-automation-framework/platforms/hyperledger-fabric/configuration/launch-new-organization.yaml -e "@/home/config/network-setup.yml" -e "add_new_org=true" -e "no_ansible_log=true" $EXTRA_VARS
+        elif [ $ACTION = "add_new_org" ]; then
+            cat /home/credentials/org.creds > /home/{{ gitop_repo_name }}/blockchain-automation-framework/platforms/hyperledger-fabric/configuration/build/channel-artifacts/${CHANNEL_NAME}.json
+            ansible-playbook blockchain-automation-framework/platforms/hyperledger-fabric/configuration/syschannel-add-org.yaml -e "@/home/config/network-setup.yml" -e "add_new_org=true" -e "no_ansible_log=true" $EXTRA_VARS
+            ansible-playbook blockchain-automation-framework/platforms/hyperledger-fabric/configuration/creator-fetch-add-org.yaml -e "@/home/config/network-setup.yml" -e "add_new_org=true" -e "no_ansible_log=true" $EXTRA_VARS
+            ansible-playbook blockchain-automation-framework/platforms/hyperledger-fabric/configuration/creator-sign-update-add-org.yaml -e "@/home/config/network-setup.yml" -e "add_new_org=true" -e "no_ansible_log=true" $EXTRA_VARS
+        elif [ $ACTION = "join_peer" ]; then
+            ansible-playbook blockchain-automation-framework/platforms/hyperledger-fabric/configuration/join-peer-add-org.yaml -e "@/home/config/network-setup.yml" -e "add_new_org=true" -e "no_ansible_log=true" $EXTRA_VARS
+        elif [ $ACTION = "add_new_channel" ]; then
+            ansible-playbook blockchain-automation-framework/platforms/hyperledger-fabric/configuration/add-new-channel.yaml -e "@/home/config/network-setup.yml" -e "fetch_certs=false" -e "no_ansible_log=true" $EXTRA_VARS
+        elif [ $ACTION = "health_check" ]; then
+            echo "Hello World"
+            kubectl get ns
+        fi
+      volumeMounts:
+      - name: network-config
+        mountPath: "/home/config/"
+        readOnly: true
+      - name: org-creds
+        mountPath: "/home/credentials/"
+        readOnly: true
+    volumes:
+    - name: network-config
+      configMap:
+        name: network-setup
+    - name: org-creds
+      secret:
+        secretName: openidl-org-creds
+    restartPolicy: Never

@@ -38,7 +38,7 @@ resource "aws_kms_key" "tf_backend_s3_bucket_kms_key" {
                 "kms:UntagResource",
                 "kms:ScheduleKeyDeletion",
                 "kms:CancelKeyDeletion",
-				"kms:Encrypt",
+				        "kms:Encrypt",
                 "kms:Decrypt",
                 "kms:ReEncrypt*",
                 "kms:GenerateDataKey*",
@@ -74,7 +74,7 @@ resource "aws_s3_bucket" "tf_backend_s3_bucket" {
   versioning {
     enabled = true
   }
-  tags = local.tags
+  tags = local.bucket_tags
   server_side_encryption_configuration {
     rule {
       apply_server_side_encryption_by_default {
@@ -143,7 +143,7 @@ resource "aws_s3_bucket" "tf_inputs_s3_bucket" {
   versioning {
     enabled = true
   }
-  tags = local.tags
+  tags = local.bucket_tags
   server_side_encryption_configuration {
     rule {
       apply_server_side_encryption_by_default {
@@ -293,5 +293,3 @@ resource "aws_dynamodb_table" "tf_state_lock" {
       enabled = true
     }
 }
-
-

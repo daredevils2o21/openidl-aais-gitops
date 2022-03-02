@@ -1,0 +1,8 @@
+# aws region where cluster
+region: "us-east-1"
+# environment for example: dev, test
+env: "dev"
+
+network:
+# organization name to be used
+  org_name: "trv"

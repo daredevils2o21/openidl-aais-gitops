@@ -1,0 +1,60 @@
+- hosts: ansible_provisioners
+  gather_facts: no
+  tasks:
+    - name: Get vault root token
+      shell: |
+        aws secretsmanager get-secret-value --secret-id {{ network.org_name }}-{{ env }}-config-vault --version-stage AWSCURRENT | jq -r .SecretString
+      register: vault
+    
+    - name: setting fact
+      set_fact: 
+        vaultq={{ vault.stdout }}
+
+    - name: Creating a file with content
+      copy:
+        dest: "./run_vault_config.sh"
+        content: |
+          #!/bin/sh
+          ./add-vault-config.sh  -V {{ vaultq.url }} -U {{ vaultq.username }} -P {{ vaultq.password }} -a {{ vaultq.vaultPath }} -o {{ vaultq.orgName }} -c /config
+
+    - name: create config maps of configutation files 
+      shell: |
+        kubectl create configmap vault-config -n default --from-file=./config/carrier
+
+    - name: create config maps of scripts
+      shell: |
+        kubectl create configmap run-config -n default --from-file=../vault-scripts/add-vault-config.sh --from-file=./run_vault_config.sh    
+    
+    - name: run ubuntu pod to upload config maps to vault
+      shell: |
+        kubectl apply -f ubuntu.yml -n default
+
+    - name: sleep on ubuntu container
+      shell: |
+        sleep 20
+
+    - name: logs
+      shell: |
+        kubectl logs -f ubuntu -n default
+      register: ubuntu_logs
+
+    - name: ubuntu logs 
+      debug:
+        msg: '{{ ubuntu_logs.stdout_lines }}'
+
+    - name: delete ubuntu pod
+      shell: |
+        kubectl delete -f ubuntu.yml -n default
+
+    - name: delete config maps of configutation files 
+      shell: |
+        kubectl delete configmap vault-config -n default
+
+    - name: delete config maps of scripts
+      shell: |
+        kubectl delete configmap run-config -n default
+    
+    - name: Delete add-vault-user-script
+      file:
+        state: absent
+        path: ./run_vault_config.sh

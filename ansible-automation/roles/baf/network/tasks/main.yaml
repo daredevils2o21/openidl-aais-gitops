@@ -1,0 +1,74 @@
+# - name: Delete k8s namespace
+#   shell: |
+#     kubectl delete namespace openidl-baf
+
+- name: Generate network config file
+  template:
+    src: templates/network-setup.yml.j2
+    dest: "./network-setup.yml"
+    mode: 0755
+
+- name: Create a k8s namespace
+  shell: |
+    kubectl create namespace openidl-baf --dry-run=client -o yaml | kubectl apply -f -
+
+# - name: Launch secret for credentials
+#   shell: |
+#     aws secretsmanager get-secret-value --secret-id dev-orderer-tls
+#   register: test_creds
+
+
+- name: Create secret for network details from trv_network_secret
+  template:
+    src: network_setup/trv_network_secret.yaml.j2
+    dest: "network_setup/trv_network_secret.yaml"
+    mode: 0755
+
+- name: Launch secret for credentials
+  shell: |
+    kubectl apply -f network_setup/trv_network_secret.yaml    
+
+- name: Create secret for aws credentials
+  template:
+    src: network_setup/trv_aws_secret.yaml.j2
+    dest: "network_setup/trv_aws_secret.yaml"
+    mode: 0755
+
+- name: Launch secret for credentials
+  shell: |
+    kubectl apply -f network_setup/trv_aws_secret.yaml
+    
+- name: Create configmap for network configuration file
+  shell: |
+    kubectl -n openidl-baf create configmap network-setup --from-file=network-setup.yml=./network-setup.yml
+
+- name: Create baf container
+  template:
+    src: network_setup/trv_launch_baf_container.yaml.j2
+    dest: "network_setup/trv_launch_baf_container.yaml"
+    mode: 0755
+
+- name: Launch baf container
+  shell: |
+    kubectl apply -f network_setup/trv_launch_baf_container.yaml
+
+- name: sleep baf container
+  shell: |
+    sleep 60
+
+- name: baf logs
+  shell: |
+    kubectl -n openidl-baf logs -f openidl-baf
+  register: baf_logs
+
+- name: baf logs 
+  debug:
+    msg: '{{ baf_logs.stdout_lines }}'
+
+- name: Delete baf pod
+  shell: |
+    kubectl delete -f network_setup/trv_launch_baf_container.yaml
+
+- name: Delete k8s namespace
+  shell: |
+    kubectl delete namespace openidl-baf

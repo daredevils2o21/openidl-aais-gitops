@@ -54,7 +54,7 @@ resource "aws_iam_user_policy" "git_actions_policy" {
 #iam policy for git actions role
 resource "aws_iam_policy" "git_actions_admin_policy" {
   name   = "${local.std_name}-AmazonEKSSMAdminPolicy"
-  policy = file("resources/policies/git-actions-admin-policy.json")
+  policy = file("${path.module}/resources/policies/git-actions-admin-policy.json")
   tags = merge(local.tags,
     { "Name" = "${local.std_name}-AmazonEKSSMAdminPolicy",
   "Cluster_type" = "both" })

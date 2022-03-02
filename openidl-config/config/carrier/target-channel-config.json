@@ -1,0 +1,19 @@
+{
+    "targetChannels": [
+        {
+            "chaincodeName": "openidl-cc-aais-carriers",
+            "channelName": "anal-trv"
+        },
+        {
+            "chaincodeName": "openidl-cc-default",
+            "channelName": "defaultchannel"
+        }
+    ],
+    "users": [
+        {
+            "mspId": "trvMSP",
+            "org": "trv",
+            "user": "openidl-trv-data-call-processor-ibp-2.0"
+        }
+    ]
+}

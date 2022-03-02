@@ -1,0 +1,87 @@
+apiVersion: v1
+kind: Pod
+metadata:
+    name: ubuntu
+spec:
+    containers:
+    - name: ubuntu
+      image: ubuntu:latest
+          # Just spin & wait forever
+      command: 
+        - "/bin/bash"
+        - "-c"
+        - "apt update -y && apt install -y vim jq curl && cd /config-setup && ./run_vault_config.sh"
+      volumeMounts:
+      - mountPath: /config-setup
+        name: run-files
+      - mountPath: /config
+        name: config-files
+    volumes:
+    - name: run-files
+      configMap:
+        defaultMode: 420
+        name: run-config
+        items:
+        - key: add-vault-config.sh
+          mode: 365
+          path: add-vault-config.sh
+        - key: run_vault_config.sh
+          mode: 365
+          path: run_vault_config.sh    
+    - name: config-files
+      configMap:
+        defaultMode: 420
+        name: vault-config
+        items:
+        - key: channel-config.json
+          path: channel-config.json
+        - key: connection-profile.json
+          path: connection-profile.json
+        - key: data-call-app-default-config.json
+          path: data-call-app-default-config.json
+        - key: data-call-app-mappings-config.json
+          path: data-call-app-mappings-config.json
+        - key: data-call-processor-default-config.json
+          path: data-call-processor-default-config.json
+        - key: data-call-processor-mappings-config.json
+          path: data-call-processor-mappings-config.json
+        - key: data-call-processor-metadata-config.json
+          path: data-call-processor-metadata-config.json
+        - key: default-config.json
+          path: default-config.json
+        - key: email-config.json
+          path: email-config.json
+        - key: insurance-data-manager-channel-config.json
+          path: insurance-data-manager-channel-config.json
+        - key: insurance-data-manager-default-config.json
+          path: insurance-data-manager-default-config.json
+        - key: insurance-data-manager-mappings-config.json
+          path: insurance-data-manager-mappings-config.json
+        - key: insurance-data-manager-metadata-config.json
+          path: insurance-data-manager-metadata-config.json
+        - key: listener-channel-config.json
+          path: listener-channel-config.json
+        - key: local-cognito-admin-config.json
+          path: local-cognito-admin-config.json
+        - key: local-cognito-config.json
+          path: local-cognito-config.json
+        - key: local-db-config.json
+          path: local-db-config.json
+        - key: local-kvs-config.json
+          path: local-kvs-config.json
+        - key: local-vault-config.json
+          path: local-vault-config.json
+        - key: s3-bucket-config.json
+          path: s3-bucket-config.json
+        - key: target-channel-config.json
+          path: target-channel-config.json
+        - key: ui-mappings-config.json
+          path: ui-mappings-config.json
+        - key: unique-identifiers-config.json
+          path: unique-identifiers-config.json
+        - key: utilities-fabric-config.json
+          path: utilities-fabric-config.json
+        - key: utilities-mappings-config.json
+          path: utilities-mappings-config.json
+        - key: utilties-admin-config.json
+          path: utilties-admin-config.json

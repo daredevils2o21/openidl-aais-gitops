@@ -1,0 +1,194 @@
+- name: generate vault values template from vault.j2 file
+  template:
+    src: templates/vault.j2
+    dest: "./vault-values.yaml"
+    mode: 0755
+
+- name: Create a k8s namespace
+  shell: |
+    kubectl create namespace vault --dry-run=client -o yaml | kubectl apply -f -
+
+- name: Add vault Helm chart repo
+  shell: |
+    helm repo add hashicorp https://helm.releases.hashicorp.com
+    helm repo update
+  tags:
+    - hashicorp-vault
+    - hashicorp-vault-helm
+    - hashicorp-vault
+
+- name: Install vault helm chart
+  shell: |
+    helm --namespace=vault install vault hashicorp/vault -f ./vault-values.yaml \
+    --set server.ha.enabled=true \
+    --set server.ha.raft.enabled=true \
+    --set tlsDisable=false \
+    --set server.ingress.enabled=true \
+    --set server.ingress.hosts[0].host=vault.{{ env }}.{{ internal_domain }} \
+    --set server.ingress.annotations."kubernetes\.io/ingress\.class"=haproxy \
+    --set server.dataStorage.storageClass=openidl-sc \
+    --version="0.16.1"
+  tags:
+    - hashicorp-vault
+    - hashicorp-vault-helm
+    - hashicorp-vault
+
+- name: Wait till vault deployment completes and vault status availability
+  shell: |
+    sleep 60
+
+- name: Initialize and unseal the vault
+  shell: |
+    kubectl -n vault exec vault-0 -- vault operator init > ./vault-unseal-keys.txt
+
+- name: Get the vault-unseal-key from the server
+  slurp:
+    src: "./vault-unseal-keys.txt"
+  register: unsealkey
+
+- name: delete Vault unseal keys from aws secrets manager
+  shell: |
+    aws secretsmanager delete-secret --secret-id {{ network.org_name }}-{{ env }}-vault-unseal-key --force-delete-without-recovery
+  ignore_errors: yes
+
+- name: upload Vault unseal keys to aws secrets manager
+  shell: |
+    aws secretsmanager create-secret --name {{ network.org_name }}-{{ env }}-vault-unseal-key --description "Vault unseal root token" --secret-string {{ unsealkey['content'] | b64decode | regex_findall('Initial Root Token: (.*)')|last }}
+
+- name: Delete unseal keys file
+  file:
+    path: ./vault-unseal-keys.txt
+    state: absent
+
+- name: Wait till vault deployment completes and vault status availability
+  shell: sleep 180
+
+- name: Create secret path for org
+  shell: |
+    kubectl -n vault exec vault-0 -- vault login {{ unsealkey['content'] | b64decode | regex_findall('Initial Root Token: (.*)')|last }}
+    kubectl -n vault exec vault-0 -- vault secrets enable -version=1 -path={{ network.org_name }} kv
+
+- name: Create secret path for orderer org
+  shell: |
+    kubectl -n vault exec vault-0 -- vault secrets enable -version=1 -path={{ network.ordererorg_name }} kv
+  when: network.ordererorg == "true"
+
+- name: Join Vault-1 to vault cluster
+  shell: |
+    kubectl -n vault exec vault-1 vault operator raft join http://vault-0.vault-internal:8200
+
+- name: Join Vault-2 to vault cluster
+  shell: |
+    kubectl -n vault exec vault-2 vault operator raft join http://vault-0.vault-internal:8200
+
+- name: Generate vault-add-user script
+  template:
+    src: templates/add-vault-user.sh.j2
+    dest: ./add-vault-user.sh
+    mode: 0755
+
+- name: Create configmap for network configuration file
+  shell: |
+    kubectl -n vault create configmap add-vault-user-script --from-file=add-vault-user.sh=./add-vault-user.sh
+
+- name: generate vault values template from trv_vault.yaml.j2 file
+  template:
+    src: vault_setup/trv_vault.yaml.j2
+    dest: "vault_setup/trv_vault.yaml"
+    mode: 0755
+
+- name: generate vault values template from trv_secret.yaml.j2 file
+  template:
+    src: vault_setup/trv_secret.yaml.j2
+    dest: "vault_setup/trv_secret.yaml"
+    mode: 0755
+
+- name: Create secret for credentials
+  shell: |
+    kubectl apply -f vault_setup/trv_secret.yaml
+
+- name: Launch Pod for vault user
+  shell: |
+    kubectl apply -f vault_setup/trv_vault.yaml
+
+- name: Pod logs
+  shell: |
+    sleep 60
+    kubectl -n vault logs -f vault-user-script
+  register: baf_logs
+  ignore_errors: yes
+
+- name: Pod logs 
+  debug:
+    msg: '{{ baf_logs.stdout_lines }}'
+
+- name: Generate user credentials json
+  template:
+    src: templates/creds.json.j2
+    dest: ./creds.json
+  vars:
+    vault_path: "config-{{ network.org_name }}"
+    vault_user: "{{ vault_config_user }}"
+    vault_user_token: "{{ vault_config_user_token }}"
+    vault_org_name: "config"
+
+# - name: delete config user credentials from secrets manager
+#   shell: |
+#     aws secretsmanager delete-secret --secret-id {{ network.org_name }}-{{ env }}-config-vault --force-delete-without-recovery
+#   ignore_errors: yes
+
+- name: Upload config user credentials to secrets manager
+  shell: |
+    aws secretsmanager create-secret --name {{ network.org_name }}-{{ env }}-config-vault --description "Vault Credentials for config user" --secret-string file://creds.json
+
+- name: Delete config user credentials json file
+  file:
+    state: absent
+    path: ./creds.json
+
+- name: Generate user credentials json
+  template:
+    src: templates/creds.json.j2
+    dest: ./creds.json
+  vars:
+    vault_path: "kvs-{{ network.org_name }}"
+    vault_user: "{{ vault_kvs_user }}"
+    vault_user_token: "{{ vault_kvs_user_token }}"
+    vault_org_name: "kvs"
+
+# - name: delete kvs user credentials from secrets manager
+#   shell: |
+#     aws secretsmanager delete-secret --secret-id {{ network.org_name }}-{{ env }}-kvs-vault --force-delete-without-recovery
+#   ignore_errors: yes
+
+- name: Upload kvs user credentials to secrets manager
+  shell: |
+    aws secretsmanager create-secret --name {{ network.org_name }}-{{ env }}-kvs-vault --description "Vault Credentials for kvs user" --secret-string file://creds.json
+
+- name: Delete config user credentials json file
+  file:
+    state: absent
+    path: ./creds.json
+
+
+- name: Delete user script pod
+  shell: |
+    kubectl delete -f vault_setup/trv_vault.yaml
+
+- name: Delete Script Configmap
+  shell: |
+    kubectl -n vault delete configmap add-vault-user-script 
+
+- name: Create secret for credentials
+  shell: |
+    kubectl delete -f vault_setup/trv_secret.yaml    
+
+- name: Delete add-vault-user-script
+  file:
+    state: absent
+    path: ./add-vault-user.sh
+
+- name: Delete vault values file
+  file:
+    state: absent
+    path: ./vault-values.yaml

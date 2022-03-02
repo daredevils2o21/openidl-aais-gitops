@@ -1,0 +1,57 @@
+{
+    "certificateAuthorities": {
+        "ca.trv-net.trv.dev.trv.emergingtechdemo.com": {
+            "caName": "ca.trv-net",
+            "httpOptions": {
+                "verify": false
+            },
+            "tlsCACerts": {
+                "pem": [
+                    "-----BEGIN CERTIFICATE-----\nMIICMjCCAdigAwIBAgIUVtXNpNszTt8KAGjVMk+6f/8HNHMwCgYIKoZIzj0EAwIw\ndzELMAkGA1UEBhMCVVMxETAPBgNVBAgMCElsbGlub2lzMREwDwYDVQQHDAhJbGxp\nbm9pczEMMAoGA1UECgwDdHJ2MTQwMgYDVQQDDCtjYS50cnYtbmV0LnRydi5kZXYu\ndHJ2LmVtZXJnaW5ndGVjaGRlbW8uY29tMB4XDTIyMDIwOTIyMzEyOVoXDTI0MTEy\nOTIyMzEyOVowdzELMAkGA1UEBhMCVVMxETAPBgNVBAgMCElsbGlub2lzMREwDwYD\nVQQHDAhJbGxpbm9pczEMMAoGA1UECgwDdHJ2MTQwMgYDVQQDDCtjYS50cnYtbmV0\nLnRydi5kZXYudHJ2LmVtZXJnaW5ndGVjaGRlbW8uY29tMFkwEwYHKoZIzj0CAQYI\nKoZIzj0DAQcDQgAEK2Av9tq6Cc8OAo6uytNfIZkVjCw0k+asWdbxG9AjxXtuLyzM\ndSNJVtA8zwdPfO2/KEym57T20Ad0YoB43UehtKNCMEAwDwYDVR0TAQH/BAUwAwEB\n/zAOBgNVHQ8BAf8EBAMCAaYwHQYDVR0OBBYEFNTgD3wAkREKDzv00Oy/H9xkWhuO\nMAoGCCqGSM49BAMCA0gAMEUCIQDdXNhmlikKtOGn2Tp/2fICHRdBoz9DXcDfJW9b\nEo0KhAIgQNjlB4sE8kJej6N2bLZ8iJc1pzg2gIjYjgrxlWXXNdM=\n-----END CERTIFICATE-----"
+                ]
+            },
+            "url": "https://ca.trv-net.trv.dev.trv.emergingtechdemo.com:8443"
+        }
+    },
+    "client": {
+        "connection": {
+            "timeout": {
+                "peer": {
+                    "endorser": "300"
+                }
+            }
+        },
+        "organization": "trv"
+    },
+    "isLocal": true,
+    "name": "test-network-trv",
+    "organizations": {
+        "trv": {
+            "certificateAuthorities": [
+                "ca.trv-net.trv.dev.trv.emergingtechdemo.com"
+            ],
+            "mspid": "trvMSP",
+            "peers": [
+                "peer0.trv-net.trv.dev.trv.emergingtechdemo.com"
+            ]
+        }
+    },
+    "peers": {
+        "peer0.trv-net.trv.dev.trv.emergingtechdemo.com": {
+            "grpcOptions": {
+                "grpc-wait-for-ready-timeout": 30000,
+                "grpc.http2.keepalive_time": 36000,
+                "grpc.http2.keepalive_timeout": 18000,
+                "grpc.keepalive_time_ms": 360000,
+                "grpc.keepalive_timeout_ms": 180000,
+                "hostnameOverride": "peer0.trv-net.trv.dev.trv.emergingtechdemo.com",
+                "ssl-target-name-override": "peer0.trv-net.trv.dev.trv.emergingtechdemo.com"
+            },
+            "tlsCACerts": {
+                "pem": "-----BEGIN CERTIFICATE-----\nMIICMjCCAdigAwIBAgIUVtXNpNszTt8KAGjVMk+6f/8HNHMwCgYIKoZIzj0EAwIw\ndzELMAkGA1UEBhMCVVMxETAPBgNVBAgMCElsbGlub2lzMREwDwYDVQQHDAhJbGxp\nbm9pczEMMAoGA1UECgwDdHJ2MTQwMgYDVQQDDCtjYS50cnYtbmV0LnRydi5kZXYu\ndHJ2LmVtZXJnaW5ndGVjaGRlbW8uY29tMB4XDTIyMDIwOTIyMzEyOVoXDTI0MTEy\nOTIyMzEyOVowdzELMAkGA1UEBhMCVVMxETAPBgNVBAgMCElsbGlub2lzMREwDwYD\nVQQHDAhJbGxpbm9pczEMMAoGA1UECgwDdHJ2MTQwMgYDVQQDDCtjYS50cnYtbmV0\nLnRydi5kZXYudHJ2LmVtZXJnaW5ndGVjaGRlbW8uY29tMFkwEwYHKoZIzj0CAQYI\nKoZIzj0DAQcDQgAEK2Av9tq6Cc8OAo6uytNfIZkVjCw0k+asWdbxG9AjxXtuLyzM\ndSNJVtA8zwdPfO2/KEym57T20Ad0YoB43UehtKNCMEAwDwYDVR0TAQH/BAUwAwEB\n/zAOBgNVHQ8BAf8EBAMCAaYwHQYDVR0OBBYEFNTgD3wAkREKDzv00Oy/H9xkWhuO\nMAoGCCqGSM49BAMCA0gAMEUCIQDdXNhmlikKtOGn2Tp/2fICHRdBoz9DXcDfJW9b\nEo0KhAIgQNjlB4sE8kJej6N2bLZ8iJc1pzg2gIjYjgrxlWXXNdM=\n-----END CERTIFICATE-----"
+            },
+            "url": "grpcs://peer0.trv-net.trv.dev.trv.emergingtechdemo.com:8443"
+        }
+    },
+    "version": "1.0.0"
+}

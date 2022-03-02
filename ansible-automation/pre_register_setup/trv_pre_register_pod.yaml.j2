@@ -1,0 +1,70 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pre-register-user-script
+  namespace: vault
+spec:
+  containers:
+  - name: script
+    image: hyperledger/fabric-ca:1.5.1
+    env:
+    - name: VAULT_ROOT_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: vault-user-creds
+          key: VAULT_ROOT_TOKEN
+    - name: CA_USER_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: vault-user-creds
+          key: CA_USER_TOKEN
+    - name: VAULT_KVS_USER
+      valueFrom:
+        secretKeyRef:
+          name: vault-user-creds
+          key: VAULT_KVS_USER
+    - name: VAULT_KVS_USER_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: vault-user-creds
+          key: VAULT_KVS_USER_TOKEN
+    - name: ORG_NAME
+      value: "{{ network.org_name }}"
+    - name: VAULT_URL
+      value: "http://vault.{{ env }}.{{ internal_domain }}"
+    - name: ENV
+      value: "{{ env }}"
+    - name: DOMAIN
+      value: "{{ domain }}"
+    - name: NODE_TYPE
+      value: "{{ node_type }}"
+    command: ["sh", "-c"]
+    args: 
+    - |-
+      #!/bin/bash -e
+      cd /home/
+      apk add bash curl jq
+      ./config/pre-register-users.sh -N ${ORG_NAME}-admin \
+        -p ${CA_USER_TOKEN} \
+        -u ca.${ORG_NAME}-net.${ORG_NAME}.${ENV}.${DOMAIN}:8443 \
+        -n ca.${ORG_NAME}-net \
+        -o ${ORG_NAME} \
+        -m ${ORG_NAME}MSP \
+        -U "openidl-${ORG_NAME}-insurance-data-manager-ibp-2.0 openidl-${ORG_NAME}-data-call-processor-ibp-2.0 openidl-${ORG_NAME}-data-call-app-ibp-2.0 openidl-${ORG_NAME}-data-call-mood-listener-ibp-2.0 openidl-${ORG_NAME}-transactional-data-event-listener-ibp-2.0" \
+        -V ${VAULT_URL} \
+        -l ${VAULT_KVS_USER} \
+        -t ${VAULT_KVS_USER_TOKEN} \
+        -b kvs \
+        -q kvs-${ORG_NAME} \
+        -T ${VAULT_ROOT_TOKEN} \
+        -w vault
+    volumeMounts:
+    - name: vault-user-script
+      mountPath: "/home/config/"
+      readOnly: true
+  volumes:
+  - name: vault-user-script
+    configMap:
+      name: pre-register-users-script
+      defaultMode: 0777
+  restartPolicy: Never

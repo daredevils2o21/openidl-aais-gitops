@@ -120,6 +120,7 @@ module "app_eks_cluster" {
     {
       "Name"         = "${local.app_cluster_name}"
       "Cluster_type" = "application"
+      #"${local.app_cluster_name}" = "owned"
   }, )
   depends_on = [module.aais_app_vpc,
     aws_vpc_endpoint.app_eks_asg,
@@ -288,8 +289,9 @@ module "blk_eks_cluster" {
   tags = merge(
     local.tags,
     {
-      "Name"         = "${local.app_cluster_name}"
+      "Name"         = "${local.blk_cluster_name}"
       "Cluster_type" = "blockchain"
+      #"${local.blk_cluster_name}" = "owned"
   }, )
   depends_on = [module.aais_blk_vpc,
     aws_vpc_endpoint.blk_eks_asg,

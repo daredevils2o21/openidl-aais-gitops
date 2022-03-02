@@ -1,0 +1,9 @@
+{
+  "adminlist": [
+    {
+      "org": "trv",
+      "secret": "trv-adminpw",
+      "user": "trv-admin"
+    }
+  ]
+}

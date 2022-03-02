@@ -16,18 +16,6 @@ variable "aws_env" {
     error_message = "The environment value must be either \\dev\\test\\prod."
   }
 }
-variable "aws_account_number" {
-  type        = string
-  description = "The aws account number on which core application infra is to setup/exists"
-}
-variable "aws_user_arn" {
-  type        = string
-  description = "The iam user will have access to s3 bucket and kms key"
-}
-variable "aws_role_arn" {
-  type        = string
-  description = "The iam role which will have access to s3 bucket and kms key"
-}
 #------------------------------------------------------------------------------------------------------------------
 #Route53 related
 variable "domain_info" {

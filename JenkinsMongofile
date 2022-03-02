@@ -1,0 +1,229 @@
+/*
+Edited to alpine version because its cleaner than ubuntu
+*/
+pipeline {
+	agent {
+    	kubernetes {
+			containerTemplate {
+			name 'alpine'
+			image 'docker-cbcore.prodlb.travp.net/builder/awshelper:current-alpine'
+			ttyEnabled true
+			command 'cat'
+			}
+    	}
+  	}
+	environment {
+        ansible_python_interpreter='/usr/local/bin/python3'
+		env = "dev"
+		org = "trv"
+		access_id = credentials('baf-user')
+		access_key = credentials('baf-user-secret-access-key')
+		trv_dev_gitactions_eksadm_access_key = credentials('trv-dev-gitactions-eksadm-access-key')
+		trv_dev_gitactions_eksadm_secret_access_key = credentials('trv-dev-gitactions-eksadm-secret-access-key')
+		trv_dev_gitactions_eksadm_role = credentials('trv-dev-gitactions-eksadm-role')
+		region = "us-east-1"
+		app_cluster = "trv-dev-app-cluster"
+		vault_secret_name = "trv-dev-config-vault"
+ 	}
+	parameters {
+        choice(
+            choices: ['', 'mongodb', 'mongodb_cleanup', 'vault_config_maps', 'deploy_openidl_secrets', 'deploy_openidl_app_dev_carrier'],
+            description: '',
+            name: 'REQUESTED_ACTION')
+    }
+	stages {
+		stage('check_parameters_step') { 
+			when{
+				expression { params.REQUESTED_ACTION == '' }
+			}
+			steps {
+				withAwsCli(credentialsId: 'OpenIDL', defaultRegion: 'us-east-1'){
+
+				sh '''export ORDERER_TLS_CERT=$(aws secretsmanager get-secret-value --secret-id ${env}-orderer-tls)''' 
+				sh ''' echo $ORDERER_TLS_CERT'''
+				error("Invalid target environment: ${params.REQUESTED_ACTION}")
+				}
+			}
+		}
+   		stage('Install Dependencies') {
+			steps {
+				container('alpine'){
+					sh 'apk --update --upgrade add gcc musl-dev jpeg-dev zlib-dev libffi-dev cairo-dev pango-dev gdk-pixbuf-dev'
+				}
+				container('alpine') {  
+					sh "apk -q update && apk -q add ansible py3-requests-oauthlib py-yaml jq openssl"				
+				}
+				container(name: 'alpine') {
+					sh '''
+						chmod +x ./pyathena.sh
+						./pyathena.sh && rm ./pyathena.sh
+						'''
+				}
+				container('alpine'){
+					sh 'pip3 install --upgrade pip'
+				}
+				container('alpine') {  
+					sh "pip3 install openshift ansible docker"				
+				}
+				container(name: 'alpine') {
+			sh '''
+				ansible --version
+				which python
+				ansible-galaxy collection install community.docker
+				ansible-galaxy collection install community.kubernetes:==1.2.1
+			'''
+			}
+				container('alpine') { 
+					sh '''
+						ansible --version
+						ansible-playbook --version
+						ansible-galaxy --version
+						'''
+				}
+				container(name: 'alpine') {
+					sh '''
+						curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+						chmod 700 get_helm.sh
+						./get_helm.sh
+					'''
+				}
+			container(name: 'alpine') {
+					sh '''
+							curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+							install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+						'''
+				}
+			container(name: 'alpine') {
+			sh '''
+				kubectl version --client
+				helm version
+				'''
+				}
+			}
+		}
+		stage('EKS check') {
+			steps {
+				withAwsCli(credentialsId: 'OpenIDL', defaultRegion: 'us-east-1'){
+					dir('ansible-automation'){
+						container(name: 'alpine') {
+							sh 'aws eks update-kubeconfig --region ${region} --name trv-dev-app-cluster'
+						}
+					}
+				}
+			}
+		}
+		stage('mongodb') { 
+			when{
+				expression { params.REQUESTED_ACTION == 'mongodb' }
+			}
+			steps {
+				withAwsCli(credentialsId: 'OpenIDL', defaultRegion: 'us-east-1'){
+					dir('ansible-automation'){
+						container(name: 'alpine') {
+							sh '''ansible-playbook mongodb-setup.yml -i ./inventory/ansible_provisioners \
+							-e "@./trv-config-dev.yml" \
+							-e "access_id=${access_id}" \
+							-e "access_key=${access_key}" \
+							-e "ansible_python_interpreter=/usr/local/bin/python3"'''
+						}
+					}
+				} 
+			}
+		}
+		stage('mongodb_cleanup') { 
+			when{
+				expression { params.REQUESTED_ACTION == 'mongodb_cleanup' }
+			}
+			steps {
+				withAwsCli(credentialsId: 'OpenIDL', defaultRegion: 'us-east-1'){
+					dir('ansible-automation'){
+						container(name: 'alpine') {
+							sh '''ansible-playbook mongodb-cleanup.yml -i ./inventory/ansible_provisioners \
+							-e "@./trv-config-dev.yml" \
+							-e "access_id=${access_id}" \
+							-e "access_key=${access_key}" \
+							-e "ansible_python_interpreter=/usr/local/bin/python3"'''
+						}
+					}
+				} 
+			}
+		}
+		stage('vault_config_maps') { 
+			when{
+				expression { params.REQUESTED_ACTION == 'vault_config_maps' }
+			}
+			steps {
+				withAwsCli(credentialsId: 'OpenIDL', defaultRegion: 'us-east-1'){
+					dir('openidl-config'){
+						container(name: 'alpine') {
+							sh '''
+							aws eks update-kubeconfig --region us-east-1 --name trv-dev-blk-cluster
+							ansible-playbook vault-config-maps.yaml -i ./inventory/ansible_provisioners \
+							-e "@../ansible-automation/trv-config-dev.yml" \
+							-e "ansible_python_interpreter=/usr/local/bin/python3"'''
+						}
+					}
+				} 
+			}
+		}
+		stage('deploy_openidl_secrets') { 
+			when{
+				expression { params.REQUESTED_ACTION == 'deploy_openidl_secrets' }
+			}
+			steps {
+				withAwsCli(credentialsId: 'OpenIDL', defaultRegion: 'us-east-1'){
+					dir('.'){
+						container(name: 'alpine') {
+							sh '''
+								kubectl run deploy-secrets -n openidl --image=amazonlinux:latest --command sleep infinity
+								sleep 60
+								kubectl exec deploy-secrets -n openidl -- sh -c "yum install tar -y > /dev/null 2&>1"
+								kubectl cp openidl-k8s/ openidl/deploy-secrets:/
+								kubectl cp vault-scripts/ openidl/deploy-secrets:/
+								kubectl exec deploy-secrets -n openidl -- sh -c "chmod +x vault-scripts/*.sh"
+								kubectl exec deploy-secrets -n openidl -- sh -c \
+								"mkdir openidl-k8s/charts/openidl-secrets/config-${env}-${org}"
+								kubectl exec deploy-secrets -n openidl -- sh -c "./vault-scripts/deploy-utilities.sh \
+								-a ${trv_dev_gitactions_eksadm_access_key} -s ${trv_dev_gitactions_eksadm_secret_access_key} \
+								-r ${region} -o ${trv_dev_gitactions_eksadm_role}"
+							
+								kubectl exec deploy-secrets -n openidl -- sh -c "./vault-scripts/pull-aws-vault-config.sh \
+								-s ${vault_secret_name} -r ${region} -a config-${org} \
+								-c openidl-k8s/charts/openidl-secrets/config-${env}-${org}"
+							
+
+								kubectl exec deploy-secrets -n openidl -- sh -c "export AWS_PROFILE=git-role; aws eks update-kubeconfig \
+								--region ${region} --name ${app_cluster}"
+								kubectl exec deploy-secrets -n openidl -- helm upgrade --install \
+								${env}-${org}-secrets ./openidl-k8s \
+								-f ./openidl-k8s/global-values-secrets.yaml -n openidl \
+								--set global.configpath=config-${env}-${org}
+							
+
+								kubectl delete pod deploy-secrets -n openidl'''
+						}
+					}
+				} 
+			}
+		}
+		stage('deploy_openidl_app_dev_carrier') { 
+			when{
+				expression { params.REQUESTED_ACTION == 'deploy_openidl_app_dev_carrier' }
+			}
+			steps {
+				withAwsCli(credentialsId: 'OpenIDL', defaultRegion: 'us-east-1'){
+					dir('.'){
+						container(name: 'alpine') {
+							sh '''
+								helm upgrade --recreate-pods --install dev-carrier ./openidl-k8s -f ./openidl-k8s/global-values-dev-carrier.yaml \
+									-n openidl --set global.datacallapp.ingressenabled=true --set global.utilities.ingressenabled=true \
+									--set global.carrierui.ingressenabled=true --set global.insurancedatamanager.ingressenabled=true \
+									--set global.secrets.install=false
+							'''
+						}
+					}
+				}
+			}
+		}
+	}
+}

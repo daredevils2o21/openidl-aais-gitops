@@ -1,0 +1,21 @@
+#Define required providers configuration
+provider "aws" {
+  region     = var.aws_region
+  # access_key = var.aws_access_key
+  # secret_key = var.aws_secret_key
+  # assume_role {
+  #   role_arn     = var.aws_role_arn
+  #   session_name = "terraform-session"
+  #   external_id  = var.aws_external_id
+  # }
+}
+
+
+# provider "aws" {
+#   region     = var.aws_region
+#   assume_role {
+#     role_arn     = "arn:aws:iam::${var.awsAccountId}:role/travrol-eng-tfe"
+#     session_name = "tfe@travelers.com"
+#     external_id  = var.aws_external_id
+#   }
+# }

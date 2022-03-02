@@ -1,3 +1,9 @@
+output "org_name" {
+  value = var.org_name
+}
+output "aws_env" {
+  value = var.aws_env
+}
 #-----------------------------------------------------------------------------------------------------------------
 #aws cognito application client outputs
 output "cognito_user_pool_id" {
@@ -28,7 +34,7 @@ output "app_cluster_endpoint" {
   value = module.app_eks_cluster.cluster_endpoint
 }
 output "app_cluster_name" {
-  value = module.app_eks_cluster.cluster_id
+  value = local.app_cluster_name
 }
 #output "app_cluster_certificate" {
 #  value = module.app_eks_cluster.cluster_certificate_authority_data
@@ -47,7 +53,7 @@ output "blk_cluster_endpoint" {
   value = module.blk_eks_cluster.cluster_endpoint
 }
 output "blk_cluster_name" {
-  value = module.blk_eks_cluster.cluster_id
+  value = local.blk_cluster_name
 }
 #output "blk_cluster_certificate" {
 #  value = module.blk_eks_cluster.cluster_certificate_authority_data
@@ -112,3 +118,25 @@ output "kms_key_arn_vault_unseal_arn" {
 output "kms_key_id_vault_unseal_name" {
   value = aws_kms_alias.vault_kms_key_alias.name
 }
+
+output "domain_info" {
+  value = var.domain_info
+}
+output "bastion_host_nlb_external" {
+  value = var.bastion_host_nlb_external
+}
+
+
+####EXTRA FROM AAIS UPDATED REPO
+output "hds_data_s3_bucket_name" {
+  value = var.org_name == "aais" ? null : aws_s3_bucket.s3_bucket_hds[0].bucket
+}
+
+output "s3_public_bucket_logos_name" {
+  value = aws_s3_bucket.s3_bucket_logos_public.bucket
+}
+
+output "openidl_app_iam_user_arn"{
+  value = aws_iam_user.openidl_apps_user.arn
+}
+

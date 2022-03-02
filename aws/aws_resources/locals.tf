@@ -10,8 +10,8 @@ locals {
     Managed_by  = "terraform"
     Node_type   = var.org_name
   }
-  bastion_host_userdata = filebase64("resources/bootstrap_scripts/bastion_host.sh")
-  worker_nodes_userdata = filebase64("resources/bootstrap_scripts/worker_nodes.sh")
+  bastion_host_userdata = filebase64("${path.module}/resources/bootstrap_scripts/bastion_host.sh")
+  worker_nodes_userdata = filebase64("${path.module}/resources/bootstrap_scripts/worker_nodes.sh")
   #cognito custom attributes
   custom_attributes = [
     "role",

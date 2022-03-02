@@ -1,6 +1,6 @@
 #aws environment definition variables
 variable "aws_region" {
-  default     = "us-east-2"
+  default     = "us-east-1"
   type        = string
   description = "The aws region to deploy the infrastructure"
   validation {
@@ -20,10 +20,10 @@ variable "aws_account_number" {
   type        = string
   description = "The aws account number on which core application infra is to setup/exists"
 }
-variable "aws_user_arn" {
-  type        = string
-  description = "The iam user will have access to s3 bucket and kms key"
-}
+# variable "aws_user_arn" {
+#   type        = string
+#   description = "The iam user will have access to s3 bucket and kms key"
+# }
 variable "aws_role_arn" {
   type        = string
   description = "The iam role which will have access to s3 bucket and kms key"
@@ -624,11 +624,7 @@ variable "org_name" {
   description = "The name of the organization"
   default = ""
 }
-variable "vault_password_reset" {
-  type = string
-  description = "A random string to be set/changed when password vault password in AWS secrets manager required to reset"
-  default = ""
-}
+
 variable "terraform_state_s3_bucket_name" {
   type = string
   description = "The name of the s3 bucket will manage terraform state files"
@@ -642,4 +638,15 @@ variable "blk_worker_nodes_ami_id" {
   type = string
   description = "The AMI id of the blk cluster worker nodes"
   default = ""
+}
+
+#EXTRA FROM AAIS UPDATED REPO
+
+variable "s3_bucket_name_hds_analytics" {
+  type = string
+  description = "The name of s3 bucket for reporting relevant only to carrier and analytics node"
+}
+variable "s3_bucket_name_logos" {
+  type = string
+  description = "The name of s3 bucket used to manage logos (public s3 bucket)"
 }

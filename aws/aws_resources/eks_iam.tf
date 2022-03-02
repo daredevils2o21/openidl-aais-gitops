@@ -2,7 +2,7 @@
 resource "aws_iam_role" "eks_cluster_role" {
   for_each           = toset(["app-eks", "blk-eks"])
   name               = "${local.std_name}-${each.value}"
-  assume_role_policy = file("resources/policies/cluster-role-trust-policy.json")
+  assume_role_policy = file("${path.module}/resources/policies/cluster-role-trust-policy.json")
   tags = merge(
     local.tags,
     {
@@ -45,7 +45,7 @@ resource "aws_iam_role_policy_attachment" "eks_cluster_AmazonEC2ContainerRegistr
 resource "aws_iam_role" "eks_nodegroup_role" {
   for_each           = toset(["app-node-group", "blk-node-group"])
   name               = "${local.std_name}-${each.value}"
-  assume_role_policy = file("resources/policies/workergroup-role-trust-policy.json")
+  assume_role_policy = file("${path.module}/resources/policies/workergroup-role-trust-policy.json")
   tags = merge(
     local.tags,
     {
@@ -71,7 +71,7 @@ resource "aws_iam_role_policy_attachment" "eks_nodegroup_AmazonEKSCNIPolicy" {
 #iam policy for the worker nodes to manage csi driver for persistent volumes
 resource "aws_iam_policy" "eks_worker_node_ebs_policy" {
   name   = "${local.std_name}-AmazonEBSCSIDriver"
-  policy = file("resources/policies/workergroup-role-ebs-ci-driver-policy.json")
+  policy = file("${path.module}/resources/policies/workergroup-role-ebs-ci-driver-policy.json")
   tags = merge(local.tags,
     { "Name" = "${local.std_name}-AmazonEBSCSIDriver",
   "Cluster_type" = "both" })
@@ -107,7 +107,7 @@ resource "aws_iam_role_policy_attachment" "eks_nodegroup_AmazonKMSKeyPolicy" {
 #iam policy for eks admin role
 resource "aws_iam_policy" "eks_admin_policy" {
   name   = "${local.std_name}-AmazonEKSAdminPolicy"
-  policy = file("resources/policies/eks-admin-policy.json")
+  policy = file("${path.module}/resources/policies/eks-admin-policy.json")
   tags = merge(local.tags,
     { "Name" = "${local.std_name}-AmazonEKSAdminPolicy",
   "Cluster_type" = "both" })

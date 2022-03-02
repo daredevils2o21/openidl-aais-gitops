@@ -1,0 +1,16 @@
+{
+    "channels": [
+   
+    {
+      "chaincodeName": "openidl-cc-aais-carriers",
+      "channelName": "anal-trv"
+    }
+    ],
+    "users": [
+        {
+            "mspId": "trvMSP",
+            "org": "trv",
+            "user": "openidl-trv-insurance-data-manager-ibp-2.0"
+        }
+    ]
+}
