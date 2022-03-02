@@ -1,5 +1,0 @@
-{
-    "mongodb": "openidl-offchain-db",
-    "persistentStore": "mongo",
-    "simpleURI": "mongodb://trv-dev-fRVxa8pvnBe51mvU:FLOWvWpncLcg15mzyFEHnpPlWkbvruBP5ANax9cL@trv-mongodb-0.trv-mongodb-headless.database.svc.cluster.local:27017,trv-mongodb-1.trv-mongodb-headless.database.svc.cluster.local:27017,trv-mongodb-2.trv-mongodb-headless.database.svc.cluster.local:27017/openidl-offchain-db?authSource=openidl-offchain-db"
-}

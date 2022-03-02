@@ -1,7 +1,0 @@
-{
-    "accessKeyId": "AKIATS4ETIZ5J2VZIKBZ",
-    "region": "us-east-1",
-    "secretAccessKey": "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",
-    "secretName": "trv-dev-kvs-vault",
-    "walletType": "hashicorp_vault"
-}
